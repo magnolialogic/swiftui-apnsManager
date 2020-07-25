@@ -13,7 +13,6 @@ import SwiftUI
 
 @main
 struct MySwiftUIApp: App {
-	@StateObject var notificationCenter = NotificationCenter()
 	@UIApplicationDelegateAdaptor private var appDelegate: AppDelegate
 
 	var body: some Scene {
