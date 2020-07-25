@@ -1,7 +1,7 @@
 # swiftui-PushNotificationManager
 Easy APNS support for SwiftUI apps
 
-Import `PushNotificationManager.swift` into your Xcode project to easily request push notification permissions and register with APNS.
+Check out and add `PushNotificationManager.swift` to your Xcode project to easily request user permissions for push notifications on launch, and if allowed register with APNS and log device token.
 
 ### Setup
 
