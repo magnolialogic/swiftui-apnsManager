@@ -8,7 +8,6 @@ Check out and add `PushNotificationManager.swift` to your Xcode project to easil
 Simply add `@UIApplicationDelegateAdaptor private var appDelegate: AppDelegate` to your `@main` block like so:
 
 ```
-import os
 import SwiftUI
 
 @main
