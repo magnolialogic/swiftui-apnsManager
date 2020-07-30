@@ -60,11 +60,6 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
 	// Callback for handling background notifications
 	func application(_ application: UIApplication, didReceiveRemoteNotification userInfo: [AnyHashable : Any], fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void) {
 		os_log(.debug, "didReceiveRemoteNotification: \(userInfo.debugDescription)")
-		if let newSize = userInfo["Size"] as? CGFloat {
-			Settings.sharedManager.size = newSize
-		} else {
-			os_log(.error, "No Size key in notification dictionary!")
-		}
 		completionHandler(UIBackgroundFetchResult.newData)
 	}
 }
@@ -100,7 +95,7 @@ class Settings: ObservableObject {
 	// Tracks whether updateDeviceTokenServerRecord received HTTP response indicating success
 	@Published var successfulTokenSubmission = UserDefaults.standard.bool(forKey: "successfulTokenSubmission") {
 		didSet {
-			os_log(.debug, "Settings.successfulTokenSubmission set: \(self.successfulTokenSubmission)")
+			os_log(.debug, "Settings.sharedManager.successfulTokenSubmission set: \(self.successfulTokenSubmission)")
 			UserDefaults.standard.setValue(successfulTokenSubmission, forKey: "successfulTokenSubmission")
 		}
 	}
@@ -109,8 +104,8 @@ class Settings: ObservableObject {
 	func updateDeviceTokenServerRecord(key: String, userName: String) {
 		
 		// Construct request URL
-		let server = "https://apns.magnolialogic.net"
-		let route = "/token/"
+		let server = "https://apns.example.com"
+		let route = "/route/"
 		let restURL = server + route + key
 		guard let requestURL = URL(string: restURL) else {
 			os_log(.error, "Failed to create request URL")
@@ -169,6 +164,4 @@ class Settings: ObservableObject {
 			}
 		}.resume()
 	}
-	
-	@Published var size: CGFloat = 56.0
 }
