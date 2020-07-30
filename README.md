@@ -52,7 +52,6 @@ struct ContentView_Previews: PreviewProvider {
 #### Example console output
 ```
 MyApp[1242:132836] User granted permissions for notifications, registering with APNS
-MyApp[1242:132792] AppDelegate.deviceToken set: fcc37fb74f2506277739c1e343c535f131447327105e23ad2a0cecf33b5b5530
 MyApp[1242:132792] Settings.sharedManager.deviceToken set: fcc37fb74f2506277739c1e343c535f131447327105e23ad2a0cecf33b5b5530
 MyApp[1242:132792] Registering token with remote notification server: https://apns.example.com
 MyApp[1242:132792] Successfully registered with APNS
