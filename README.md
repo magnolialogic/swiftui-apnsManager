@@ -61,7 +61,7 @@ MyApp[1242:132834] HTTP PUT https://apns.example.com/route/fcc37fb74f2506277739c
 MyApp[1242:132834] requestData: {
     "bundle-id" = "com.example.MyApp";
     "device-token" = fcc37fb74f2506277739c1e343c535f131447327105e23ad2a0cecf33b5b5530;
-    name = "Test";
+    name = Test;
 }
 MyApp[1242:132834] responseData: Status 409 AlreadyExists
 MyApp[1242:132792] Settings.sharedManager.successfulTokenSubmission set: true
