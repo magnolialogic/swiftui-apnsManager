@@ -10,14 +10,6 @@ import SwiftUI
 
 class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate {
 	
-	// Store deviceToken in Settings.sharedManager when local variable is set
-	private var deviceToken: String = "" {
-		didSet {
-			os_log(.debug, "AppDelegate.deviceToken set: \(self.deviceToken)")
-			Settings.sharedManager.deviceToken = self.deviceToken
-		}
-	}
-	
 	// willFinishLaunchingWithOptions callback for debugging lifecycle state issues
 	func application(_ application: UIApplication, willFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
 		return true
@@ -43,7 +35,7 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
 	
 	// Callback for successful APNS registration
 	func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
-		self.deviceToken = deviceToken.map { String(format: "%02x", $0)}.joined()
+		Settings.sharedManager.deviceToken = deviceToken.map { String(format: "%02x", $0)}.joined()
 		os_log(.debug, "Successfully registered with APNS")
 	}
 	
@@ -125,7 +117,7 @@ class Settings: ObservableObject {
 			os_log(.error, "Failed to read Bundle.main.bundleIdentifier")
 			return
 		}
-		let payload: [String: Any] = [
+		let payload: [String: String] = [
 			"bundle-id": bundleID,
 			"name": userName
 		]
@@ -134,12 +126,12 @@ class Settings: ObservableObject {
 		var request = URLRequest(url: requestURL)
 		request.httpMethod = "PUT"
 		request.setValue("application/json", forHTTPHeaderField: "content-type")
+		request.timeoutInterval = 10
 		guard let httpBody = try? JSONSerialization.data(withJSONObject: payload, options: []) else {
 			os_log(.error, "httpBody: Failed to serialize payload JSON")
 			return
 		}
 		request.httpBody = httpBody
-		request.timeoutInterval = 10
 		
 		// Send HTTP request
 		let session = URLSession.shared
