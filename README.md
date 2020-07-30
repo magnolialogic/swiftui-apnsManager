@@ -6,8 +6,10 @@ Add two lines of code to your SwiftUI app to handle requesting user permissions 
 ## Implementation
 
 1. Check out `apnsManager.swift` and add to your Xcode 12 project
-2. Add `@UIApplicationDelegateAdaptor private var appDelegate: AppDelegate` to your app
-'s `@main` block, and add `@ObservedObject var settings = Settings.sharedManager` to your ContentView like so:
+2. Update `apnsManager.swift[112-113]` with your remote notification server's domain and REST route
+3. Add `@UIApplicationDelegateAdaptor private var appDelegate: AppDelegate` to your app
+'s `@main` block, and add `@ObservedObject var settings = Settings.sharedManager` to your ContentView like below
+4. Profit
 
 #### MyApp.swift
 ```swift
