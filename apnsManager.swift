@@ -1,6 +1,6 @@
 //
-//  PushNotificationManager.swift
-//  https://github.com/magnolialogic/swiftui-PushNotificationManager
+//  apnsManager.swift
+//  https://github.com/magnolialogic/swiftui-apnsManager
 //
 //  Created by Chris Coffin on 7/24/20.
 //

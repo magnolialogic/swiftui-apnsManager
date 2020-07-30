@@ -5,7 +5,7 @@ Add two lines of code to your SwiftUI app to handle requesting user permissions 
 
 ## Implementation
 
-1. Check out `PushNotificationManager.swift` and add to your Xcode 12 project
+1. Check out `apnsManager.swift` and add to your Xcode 12 project
 2. Add `@UIApplicationDelegateAdaptor private var appDelegate: AppDelegate` to your app
 's `@main` block, and add `@ObservedObject var settings = Settings.sharedManager` to your ContentView like so:
 
