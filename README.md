@@ -1,6 +1,4 @@
 # swiftui-apnsManager
-Easy APNS support for SwiftUI apps
-
 Add two lines of code to your SwiftUI app to handle requesting user permissions for notifications, and if allowed fetch a device token from APNS and upload it to [your remote notification server](https://github.com/magnolialogic/python-apns_server).
 
 *Requires Xcode 12 / iOS 14*
@@ -8,7 +6,8 @@ Add two lines of code to your SwiftUI app to handle requesting user permissions 
 ## Implementation
 
 1. Check out `PushNotificationManager.swift` and add to your Xcode 12 project
-2. Add `@UIApplicationDelegateAdaptor private var appDelegate: AppDelegate` to your `@main` block and `@ObservedObject var settings = Settings.sharedManager` to your ContentView like so:
+2. Add `@UIApplicationDelegateAdaptor private var appDelegate: AppDelegate` to your app
+'s `@main` block, and add `@ObservedObject var settings = Settings.sharedManager` to your ContentView like so:
 
 #### MyApp.swift
 ```swift
