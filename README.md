@@ -62,7 +62,7 @@ MyApp[1242:132834] requestData: {
     name = "Test";
 }
 MyApp[1242:132834] responseData: Status 409 AlreadyExists
-MyApp[1242:132792] Settings.successfulTokenSubmission set: true
+MyApp[1242:132792] Settings.sharedManager.successfulTokenSubmission set: true
 MyApp[1242:132792] Got background notification: [AnyHashable("Data"): 1, AnyHashable("aps"): {
     "content-available" = 1;
 }]
