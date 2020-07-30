@@ -10,7 +10,7 @@ Check out and add `PushNotificationManager.swift` to your Xcode project to easil
 Simply add `@UIApplicationDelegateAdaptor private var appDelegate: AppDelegate` to your `@main` block and `@ObservedObject var settings = Settings.sharedManager` to your ContentView like so:
 
 #### MyApp.swift
-```
+```swift
 import SwiftUI
 
 @main
@@ -26,7 +26,7 @@ struct MyApp: App {
 ```
 
 #### ContentView.swift
-```
+```swift
 import os
 import SwiftUI
 
