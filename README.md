@@ -5,11 +5,11 @@ Check out and add `PushNotificationManager.swift` to your Xcode project to easil
 
 *Requires Xcode 12 / iOS 14*
 
-### Implementation
+## Implementation
 
-Simply add `@UIApplicationDelegateAdaptor private var appDelegate: AppDelegate` to your `@main` block like so:
+Simply add `@UIApplicationDelegateAdaptor private var appDelegate: AppDelegate` to your `@main` block and `@ObservedObject var settings = Settings.sharedManager` to your ContentView like so:
 
-MyApp.swift
+#### MyApp.swift
 ```
 import SwiftUI
 
@@ -25,7 +25,7 @@ struct MyApp: App {
 }
 ```
 
-ContentView.swift
+#### ContentView.swift
 ```
 import os
 import SwiftUI
@@ -49,7 +49,7 @@ struct ContentView_Previews: PreviewProvider {
 }
 ```
 
-Example console output
+#### Example console output
 ```
 MyApp[1242:132836] User granted permissions for notifications, registering with APNS
 MyApp[1242:132792] AppDelegate.deviceToken set: fcc37fb74f2506277739c1e343c535f131447327105e23ad2a0cecf33b5b5530
