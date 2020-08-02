@@ -16,6 +16,7 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
 	}
 	
 	// didFinishLaunchingWithOptions callback to claim UNUserNotificationCenterDelegate, request notification permissions, and register with APNS
+	// Handles push notification via launchOptions if app is not running and user taps on notification
 	func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
 		UNUserNotificationCenter.current().delegate = self
 		UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { (allowed, error) in
@@ -51,16 +52,27 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
 		}
 	}
 	
-	// Callback for handling user-visible alerts / notification
-	func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification, withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
-		os_log(.debug, "willPresentNotification: \(notification.debugDescription)")
-		completionHandler(UNNotificationPresentationOptions.sound)
-	}
-	
 	// Callback for handling background notifications
 	func application(_ application: UIApplication, didReceiveRemoteNotification userInfo: [AnyHashable : Any], fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void) {
 		os_log(.debug, "didReceiveRemoteNotification: \(userInfo.debugDescription)")
-		completionHandler(UIBackgroundFetchResult.newData)
+		guard let apsPayload = userInfo["aps"] as? [String: AnyObject] else {
+			completionHandler(.failed)
+			return
+		}
+		if apsPayload["content-available"] as? Int == 1 {
+			// Handle silent notification content
+			if let newData = userInfo["Data"] as? CGFloat {
+				Settings.sharedManager.data = newData
+				completionHandler(.newData)
+			} else {
+				os_log(.error, "No Data key in notification dictionary!")
+				completionHandler(.noData)
+			}
+		} else {
+			// Got user-facing notification
+			os_log(.debug, "willPresentNotification: \(userInfo.debugDescription)")
+			completionHandler(.newData)
+		}
 	}
 }
 
@@ -78,7 +90,7 @@ class Settings: ObservableObject {
 			UserDefaults.standard.setValue(name, forKey: "name")
 			let token = self.deviceToken
 			if !token.isEmpty && self.successfulTokenSubmission {
-				updateDeviceTokenServerRecord(key: token, userName: name)
+				updateDeviceTokenServerRecord(token: token, userName: name)
 			}
 		}
 	}
@@ -88,7 +100,7 @@ class Settings: ObservableObject {
 		didSet {
 			os_log(.debug, "Settings.sharedManager.deviceToken set: \(self.deviceToken)")
 			UserDefaults.standard.setValue(deviceToken, forKey: "deviceToken")
-			updateDeviceTokenServerRecord(key: deviceToken, userName: self.name)
+			updateDeviceTokenServerRecord(token: deviceToken, userName: self.name)
 		}
 	}
 	
@@ -101,18 +113,14 @@ class Settings: ObservableObject {
 	}
 	
 	// Construct HTTP request to send APNS token to remote notification server
-	func updateDeviceTokenServerRecord(key: String, userName: String) {
+	func updateDeviceTokenServerRecord(token: String, userName: String) {
 		
-		// Construct request URL
-		let server = "https://apns.example.com"
-		let route = "/route/"
-		let restURL = server + route + key
-		guard let requestURL = URL(string: restURL) else {
+		// Construct request URL + payload
+		let requestURL = "https://apns.example.com/token/" + token
+		guard let url = URL(string: requestURL) else {
 			os_log(.error, "Failed to create request URL")
 			return
 		}
-		
-		// Construct request payload
 		guard let bundleID = Bundle.main.bundleIdentifier else {
 			os_log(.error, "Failed to read Bundle.main.bundleIdentifier")
 			return
@@ -123,7 +131,7 @@ class Settings: ObservableObject {
 		]
 		
 		// Construct HTTP request
-		var request = URLRequest(url: requestURL)
+		var request = URLRequest(url: url)
 		request.httpMethod = "PUT"
 		request.setValue("application/json", forHTTPHeaderField: "content-type")
 		request.timeoutInterval = 10
@@ -135,9 +143,8 @@ class Settings: ObservableObject {
 		
 		// Send HTTP request
 		let session = URLSession.shared
-		os_log(.debug, "Registering token with remote notification server: \(server)")
 		session.dataTask(with: request) { (data, response, error) in
-			os_log(.debug, "HTTP \(request.httpMethod! as NSObject) \(restURL)")
+			os_log(.debug, "HTTP \(request.httpMethod! as NSObject) \(requestURL)")
 			if let data = data {
 				do {
 					let requestData = try JSONSerialization.jsonObject(with: data, options: [.fragmentsAllowed])
@@ -164,4 +171,7 @@ class Settings: ObservableObject {
 			}
 		}.resume()
 	}
+	
+	// Property to be updated via APNS
+	@Published var data: CGFloat = 56.0
 }
