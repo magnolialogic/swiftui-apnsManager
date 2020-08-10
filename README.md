@@ -1,14 +1,13 @@
 # swiftui-apnsManager
-Add two lines of code to your SwiftUI app to handle requesting user permissions for notifications, and if allowed fetch a device token from APNS and upload it to [your remote notification server](https://github.com/magnolialogic/python-apns_server).
+Add three lines of code to your SwiftUI app to handle requesting user permissions for notifications, and if allowed fetch a device token from APNS and upload it to [your remote notification server](https://github.com/magnolialogic/python-apns_server).
 
 *Requires Xcode 12 / iOS 14*
 
 ## Implementation
 
-1. Check out `apnsManager.swift` and add to your Xcode 12 project
-2. Update `apnsManager.swift[112-113]` with your remote notification server's domain and REST route
-3. Add `@UIApplicationDelegateAdaptor private var appDelegate: AppDelegate` to your app
-'s `@main` block, and add `@ObservedObject var settings = Settings.sharedManager` to your ContentView like below
+1. Check out `apnsManager.swift` and `AppDelegate.swift` and add to your Xcode 12 project
+2. Update `apnsManager.swift[30]` with your remote notification server's domain and REST route
+3. Add `@UIApplicationDelegateAdaptor` and `@StateObject` a la lines 4-5 from the boilerplate example below
 4. Profit
 
 #### MyApp.swift
@@ -18,54 +17,113 @@ import SwiftUI
 @main
 struct MyApp: App {
 	@UIApplicationDelegateAdaptor private var appDelegate: AppDelegate
+	@StateObject var apnsManagedSettings = apnsManager.shared
 
 	var body: some Scene {
-		WindowGroup {
-			ContentView()
+        	WindowGroup {
+			if apnsManagedSettings.notificationPermissionStatus == "Unknown" {
+				VStack {
+					Spacer()
+					ProgressView()
+					Spacer()
+				}
+			} else if apnsManagedSettings.notificationPermissionStatus == "NotDetermined" {
+				GetStartedView().environmentObject(apnsManagedSettings)
+			} else if apnsManagedSettings.notificationPermissionStatus == "Denied" {
+				NotificationsDeniedView().environmentObject(apnsManagedSettings)
+			} else {
+				NotificationsAllowedView().environmentObject(apnsManagedSettings)
+			}
 		}
-	}
-}
-```
-
-#### ContentView.swift
-```swift
-import os
-import SwiftUI
-
-struct ContentView: View {
-	@ObservedObject var settings = Settings.sharedManager
-	
-	var body: some View {
-		Spacer()
-		
-		Text("Listening for push notifications...")
-		
-		Spacer()
     }
 }
 
-struct ContentView_Previews: PreviewProvider {
-    static var previews: some View {
-		ContentView()
+struct GetStartedView: View {
+	@EnvironmentObject var apnsManagedSettings: apnsManager
+	
+	var body: some View {
+		VStack {
+			Spacer()
+			Button(action: {
+				apnsManagedSettings.requestNotificationsPermission()
+			}, label: {
+				Text("Get Started")
+			})
+			Text("Note: push notification permissions are required!")
+				.font(.system(size: 10))
+				.padding(.top, 10)
+			Spacer()
+		}.onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification), perform: { _ in
+			apnsManagedSettings.checkNotificationAuthorizationStatus()
+		})
+	}
+}
+
+struct NotificationsDeniedView: View {
+	@EnvironmentObject var apnsManagedSettings: apnsManager
+	
+	var body: some View {
+		if apnsManagedSettings.notificationPermissionStatus == "Denied" {
+			VStack {
+				Spacer()
+				Text("Notifications permissions are required")
+
+				Button(action: {
+					UIApplication.shared.open(URL(string: UIApplication.openSettingsURLString)!, options: [:], completionHandler: nil)
+				}, label: {
+					Text("Enable in Settings")
+						.padding(.top, 20)
+				})
+				Spacer()
+			}.onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification), perform: { _ in
+				apnsManagedSettings.checkNotificationAuthorizationStatus()
+			})
+		} else {
+			NotificationsAllowedView()
+		}
+	}
+}
+
+struct NotificationsAllowedView: View {
+	@EnvironmentObject var apnsManagedSettings: apnsManager
+	
+	var body: some View {
+		VStack {
+			Spacer()
+
+			Text("Listening for push notifications...")
+
+			Spacer()
+	}
     }
 }
 ```
 
 #### Example console output
 ```
-MyApp[1242:132836] User granted permissions for notifications, registering with APNS
-MyApp[1242:132792] Settings.sharedManager.deviceToken set: fcc37fb74f2506277739c1e343c535f131447327105e23ad2a0cecf33b5b5530
-MyApp[1242:132792] Registering token with remote notification server: https://apns.example.com
-MyApp[1242:132792] Successfully registered with APNS
-MyApp[1242:132834] HTTP PUT https://apns.example.com/route/fcc37fb74f2506277739c1e343c535f131447327105e23ad2a0cecf33b5b5530
-MyApp[1242:132834] requestData: {
-    "bundle-id" = "com.example.MyApp";
-    "device-token" = fcc37fb74f2506277739c1e343c535f131447327105e23ad2a0cecf33b5b5530;
-    name = Test;
-}
-MyApp[1242:132834] responseData: Status 409 AlreadyExists
-MyApp[1242:132792] Settings.sharedManager.successfulTokenSubmission set: true
-MyApp[1242:132792] Got background notification: [AnyHashable("Data"): 1, AnyHashable("aps"): {
+MyApp[15355:2946298] apnsManager.shared.notificationPermissionStatus set: NotDetermined
+MyApp[15355:2946599] appDelegate: User granted permissions for notifications, registering with APNS
+MyApp[15355:2946298] apnsManager.shared.deviceToken set: fcc37fb74f2506277739c1e343c535f131447327105e23ad2a0ce
+MyApp[15355:2946298] apnsManager.shared.apnsRegistrationSuccess set: true
+MyApp[15355:2946298] apnsManager.shared.notificationPermissionStatus set: Allowed
+MyApp[15355:2946298] apnsManager.shared.userID set: 1234567890
+MyApp[15355:2946298] apnsManager.shared.userName set: Test User 1
+MyApp[15355:2946718] apnsManager.shared.updateRemoteNotificationServer(): HTTP PUT https://apns.example.com/v1/user/1234567890, requestData: ["bundle-id": "net.magnolialogic.MyApp", "device-token": "fcc37fb74f2506277739c1e343c535f131447327105e23ad2a0ce", "name": "Test User 1"]
+MyApp[15355:2946718] apnsManager.shared.updateRemoteNotificationServer(): responseCode: 200 Success
+MyApp[15355:2946718] apnsManager.shared.updateRemoteNotificationServer(): responseData: User 1234567890 updated
+MyApp[15355:2946298] apnsManager.shared.remoteNotificationServerRegistrationSuccess set: true
+MyApp[15355:2946719] apnsManager.shared.checkForAdminFlag(): HTTP GET https://apns.example.com/v1/user/1234567890
+MyApp[15355:2946719] apnsManager.shared.checkForAdminFlag(): responseCode: 200 Success
+MyApp[15355:2946719] apnsManager.shared.checkForAdminFlag(): responseData: ["name": "Test User 1", "admin": True, "device-tokens": <__NSArrayI 0x2819a7a00>(
+cdcadc070ae340a723133db22b9c8a11f05e323c5d60339f45fa9795ec29f130,
+fcc37fb74f2506277739c1e343c535f131447327105e23ad2a0ce
+)
+, "user-id": 1234567890]
+MyApp[15355:2946298] apnsManager.shared.userIsAdmin set: true
+MyApp[15355:2946298] appDelegate: didReceiveRemoteNotification: [AnyHashable("aps"): {
     "content-available" = 1;
-}]
+}, AnyHashable("Data"): 75]
+MyApp[15355:2946298] apnsManager.shared.handleAPNSContent: Received new data: 75
+MyApp[15355:2946298] apnsManager.shared.size set: 75.0
+
 ```

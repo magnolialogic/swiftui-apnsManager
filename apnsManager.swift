@@ -8,126 +8,194 @@
 import os
 import SwiftUI
 
-class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate {
+class apnsManager: ObservableObject {
 	
-	// willFinishLaunchingWithOptions callback for debugging lifecycle state issues
-	func application(_ application: UIApplication, willFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
-		return true
-	}
 	
-	// didFinishLaunchingWithOptions callback to claim UNUserNotificationCenterDelegate, request notification permissions, and register with APNS
-	// Handles push notification via launchOptions if app is not running and user taps on notification
-	func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
-		UNUserNotificationCenter.current().delegate = self
-		UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { (allowed, error) in
-			if allowed {
-				os_log(.debug, "User granted permissions for notifications, registering with APNS")
-				DispatchQueue.main.async {
-					application.registerForRemoteNotifications()
-				}
-			} else if (error != nil) {
-				os_log(.error, "Error requesting permissions: \(error!.localizedDescription)")
-			} else {
-				os_log(.default, "Notifications not allowed!")
-			}
-		}
-		return true
-	}
 	
-	// Callback for successful APNS registration
-	func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
-		Settings.sharedManager.deviceToken = deviceToken.map { String(format: "%02x", $0)}.joined()
-		os_log(.debug, "Successfully registered with APNS")
-	}
+	// MARK: Initialization
 	
-	// Callback for failed APNS registration
-	func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {
-		os_log(.error, "Failed to register with APNS: \(error.localizedDescription)")
-	}
 	
-	// Print current notification settings to debug console
-	func getNotificationSettings() {
-		UNUserNotificationCenter.current().getNotificationSettings { settings in
-			os_log(.debug, "Notification settings: \(settings)")
-		}
-	}
-	
-	// Callback for handling background notifications
-	func application(_ application: UIApplication, didReceiveRemoteNotification userInfo: [AnyHashable : Any], fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void) {
-		os_log(.debug, "didReceiveRemoteNotification: \(userInfo.debugDescription)")
-		guard let apsPayload = userInfo["aps"] as? [String: AnyObject] else {
-			completionHandler(.failed)
-			return
-		}
-		if apsPayload["content-available"] as? Int == 1 {
-			// Handle silent notification content
-			if let newData = userInfo["Data"] as? CGFloat {
-				Settings.sharedManager.data = newData
-				completionHandler(.newData)
-			} else {
-				os_log(.error, "No Data key in notification dictionary!")
-				completionHandler(.noData)
-			}
-		} else {
-			// Got user-facing notification
-			os_log(.debug, "willPresentNotification: \(userInfo.debugDescription)")
-			completionHandler(.newData)
-		}
-	}
-}
-
-class Settings: ObservableObject {
 	
 	// Private init to prevent clients from creating another instance
 	private init() {}
 	
 	// Create shared singleton
-	static let sharedManager: Settings = Settings()
+	static let shared: apnsManager = apnsManager()
 	
-	// If deviceToken is valid and successfulTokenSubmission, update name on remote notification server if local name changes
-	@Published var name: String = UserDefaults.standard.string(forKey: "name") ?? "no name provided" {
+	// Create shared background DispatchQueue and shared DispatchGroup
+	let serialQueue = DispatchQueue(label: "apnsManager.shared.staticQueue", qos: .userInteractive, target: .global())
+	let dispatchGroup = DispatchGroup()
+	
+	// Root URL for python-apns_server API
+	let apiRoute = "https://apns.example.com/v1/user/"
+	
+	
+	
+	// MARK: User info properties
+	
+	
+	
+	// Push Sign In With Apple user credentials to remote notification server
+	var userID = UserDefaults.standard.string(forKey: "userID") ?? "" {
 		didSet {
-			UserDefaults.standard.setValue(name, forKey: "name")
-			let token = self.deviceToken
-			if !token.isEmpty && self.successfulTokenSubmission {
-				updateDeviceTokenServerRecord(token: token, userName: name)
+			os_log(.debug, "apnsManager.shared.userID set: \(self.userID)")
+			UserDefaults.standard.setValue(userID, forKey: "userID")
+		}
+	}
+	
+	// Tracks whether user has admin flag set in DB
+	@Published var userIsAdmin = false {
+		didSet {
+			os_log(.debug, "apnsManager.shared.userIsAdmin set: \(self.userIsAdmin)")
+		}
+	}
+	
+	// If deviceToken is valid and remoteNotificationServerRegistrationSuccess, update userName on remote notification server if local userName changes
+	@Published var userName: String = UserDefaults.standard.string(forKey: "userName") ?? "no name provided" {
+		didSet {
+			os_log(.debug, "apnsManager.shared.userName set: \(self.userName)")
+			UserDefaults.standard.setValue(userName, forKey: "userName")
+			if self.signInWithAppleSuccess && self.remoteNotificationServerRegistrationSuccess {
+				os_log(.debug, "apnsManager.shared.userName: updating remote notification server")
+				updateRemoteNotificationServer()
 			}
 		}
 	}
 	
 	// Attempt to update remote notification server when deviceToken is changed
-	@Published var deviceToken = UserDefaults.standard.string(forKey: "deviceToken") ?? "" {
+	var deviceToken = UserDefaults.standard.string(forKey: "deviceToken") ?? "" {
 		didSet {
-			os_log(.debug, "Settings.sharedManager.deviceToken set: \(self.deviceToken)")
+			os_log(.debug, "apnsManager.shared.deviceToken set: \(self.deviceToken)")
 			UserDefaults.standard.setValue(deviceToken, forKey: "deviceToken")
-			updateDeviceTokenServerRecord(token: deviceToken, userName: self.name)
+			if self.signInWithAppleSuccess && self.remoteNotificationServerRegistrationSuccess {
+				os_log(.debug, "apnsManager.shared.deviceToken: updating remote notification server")
+				updateRemoteNotificationServer()
+			}
 		}
 	}
 	
-	// Tracks whether updateDeviceTokenServerRecord received HTTP response indicating success
-	@Published var successfulTokenSubmission = UserDefaults.standard.bool(forKey: "successfulTokenSubmission") {
+	
+	
+	// MARK: Server interaction tracking
+	
+	
+	
+	// Tracks whether APNS registration completed successfully
+	@Published var apnsRegistrationSuccess = false {
 		didSet {
-			os_log(.debug, "Settings.sharedManager.successfulTokenSubmission set: \(self.successfulTokenSubmission)")
-			UserDefaults.standard.setValue(successfulTokenSubmission, forKey: "successfulTokenSubmission")
+			os_log(.debug, "apnsManager.shared.apnsRegistrationSuccess set: \(self.apnsRegistrationSuccess)")
 		}
 	}
+	
+	// Tracks whether updateRemoteNotificationServer received HTTP response indicating success
+	@Published var remoteNotificationServerRegistrationSuccess = UserDefaults.standard.bool(forKey: "remoteNotificationServerRegistrationSuccess") {
+		didSet {
+			os_log(.debug, "apnsManager.shared.remoteNotificationServerRegistrationSuccess set: \(self.remoteNotificationServerRegistrationSuccess)")
+			UserDefaults.standard.setValue(remoteNotificationServerRegistrationSuccess, forKey: "remoteNotificationServerRegistrationSuccess")
+			checkForAdminFlag()
+		}
+	}
+	
+	// Tracks whether we've completed the Sign In With Apple process
+	@Published var signInWithAppleSuccess = UserDefaults.standard.bool(forKey: "signInWithAppleSuccess") {
+		didSet {
+			os_log(.debug, "apnsManager.shared.signInWithAppleSuccess set: \(self.signInWithAppleSuccess)")
+			UserDefaults.standard.setValue(signInWithAppleSuccess, forKey: "signInWithAppleSuccess")
+		}
+	}
+	
+	
+	
+	// MARK: Notification permission methods and properties
+	
+	
+	
+	// Request notification permissions
+	func requestNotificationsPermission() {
+		UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { (allowed, error) in
+			if allowed {
+				os_log(.debug, "appDelegate: User granted permissions for notifications, registering with APNS")
+				DispatchQueue.main.async {
+					UIApplication.shared.registerForRemoteNotifications()
+				}
+			} else if (error != nil) {
+				os_log(.error, "appDelegate: Error requesting permissions: \(error!.localizedDescription)")
+			} else {
+				os_log(.default, "appDelegate: Notifications not allowed!")
+				DispatchQueue.main.async {
+					apnsManager.shared.notificationPermissionStatus = "Denied"
+				}
+			}
+		}
+	}
+	
+	// Get current notification authorization status
+	func checkNotificationAuthorizationStatus() {
+		UNUserNotificationCenter.current().getNotificationSettings(completionHandler: { settings in
+			var status: String
+			switch settings.authorizationStatus {
+			case .notDetermined:
+				status = "NotDetermined"
+			case .denied:
+				status = "Denied"
+			case .authorized, .provisional, .ephemeral:
+				status = "Allowed"
+			@unknown default:
+				fatalError("apnsManager.shared.checkNotificationAuthorizationStatus(): Got unexpected value for getNotificationSettings \(settings.authorizationStatus.rawValue.description)")
+			}
+			DispatchQueue.main.async {
+				self.notificationPermissionStatus = status
+			}
+		})
+	}
+	
+	// Track whether user granted permission for notifications
+	@Published var notificationPermissionStatus = "Unknown" {
+		didSet {
+			os_log(.debug, "apnsManager.shared.notificationPermissionStatus set: \(self.notificationPermissionStatus)")
+			if self.notificationPermissionStatus == "Allowed" && !self.apnsRegistrationSuccess {
+				os_log(.debug, "apnsManager.shared.notificationPermissionStatus: registering with APNS")
+				UIApplication.shared.registerForRemoteNotifications()
+			}
+		}
+	}
+	
+	// Tracks whether user should be gated or can proceed to app's main view
+	var proceedToMainView: Bool {
+		self.remoteNotificationServerRegistrationSuccess && self.signInWithAppleSuccess
+	}
+	
+	
+	
+	// MARK: HTTP request methods
+	
+	
 	
 	// Construct HTTP request to send APNS token to remote notification server
-	func updateDeviceTokenServerRecord(token: String, userName: String) {
-		
+	func updateRemoteNotificationServer() {
+		// If userName is empty we've signed in with Apple previously, so username should be on remote notification server
+		if self.userName == "no name provided" {
+			os_log(.debug, "apnsManager.shared.updateRemoteNotificationServer(): userName not set, fetching from remote notification server")
+			self.dispatchGroup.enter()
+			self.getRemoteUserName() {
+				self.dispatchGroup.leave()
+			}
+		}
 		// Construct request URL + payload
-		let requestURL = "https://apns.example.com/token/" + token
+		let requestURL = self.apiRoute + self.userID
 		guard let url = URL(string: requestURL) else {
-			os_log(.error, "Failed to create request URL")
+			os_log(.error, "apnsManager.shared.updateRemoteNotificationServer(): Failed to create request URL")
 			return
 		}
 		guard let bundleID = Bundle.main.bundleIdentifier else {
-			os_log(.error, "Failed to read Bundle.main.bundleIdentifier")
+			os_log(.error, "apnsManager.shared.updateRemoteNotificationServer(): Failed to read Bundle.main.bundleIdentifier")
 			return
 		}
-		let payload: [String: String] = [
+		self.dispatchGroup.wait()
+		let payload: [String : String] = [
 			"bundle-id": bundleID,
-			"name": userName
+			"device-token": self.deviceToken,
+			"name": self.userName
 		]
 		
 		// Construct HTTP request
@@ -136,7 +204,7 @@ class Settings: ObservableObject {
 		request.setValue("application/json", forHTTPHeaderField: "content-type")
 		request.timeoutInterval = 10
 		guard let httpBody = try? JSONSerialization.data(withJSONObject: payload, options: []) else {
-			os_log(.error, "httpBody: Failed to serialize payload JSON")
+			os_log(.error, "apnsManager.shared.updateRemoteNotificationServer(): httpBody: Failed to serialize payload JSON")
 			return
 		}
 		request.httpBody = httpBody
@@ -144,34 +212,158 @@ class Settings: ObservableObject {
 		// Send HTTP request
 		let session = URLSession.shared
 		session.dataTask(with: request) { (data, response, error) in
-			os_log(.debug, "HTTP \(request.httpMethod! as NSObject) \(requestURL)")
-			if let data = data {
-				do {
-					let requestData = try JSONSerialization.jsonObject(with: data, options: [.fragmentsAllowed])
-					os_log(.debug, "requestData: \(requestData as! NSObject)")
-				} catch {
-					os_log(.error, "URLSession.dataTask: failed to serialize requestData JSON: \(error as NSObject)")
-				}
-			}
-			
+			os_log(.debug, "apnsManager.shared.updateRemoteNotificationServer(): HTTP \(request.httpMethod! as NSObject) \(requestURL), requestData: \(payload)")
 			// Check whether we like the HTTP response status code and report success or failure
 			if let response = response as? HTTPURLResponse {
-				let successResponses = [
+				let successResponseCodes = [
 					200: "Success",
 					201: "Created",
 					409: "AlreadyExists"
 				]
-				os_log(.debug, "responseData: Status \(response.statusCode) \(successResponses[response.statusCode] as NSObject? ?? "Unknown" as NSObject)")
+				os_log(.debug, "apnsManager.shared.updateRemoteNotificationServer(): responseCode: \(response.statusCode) \(successResponseCodes[response.statusCode] as NSObject? ?? "Unknown" as NSObject)")
 				DispatchQueue.main.async {
-					self.successfulTokenSubmission = successResponses.keys.contains(response.statusCode)
+					self.remoteNotificationServerRegistrationSuccess = successResponseCodes.keys.contains(response.statusCode)
+				}
+			}
+			if let data = data {
+				do {
+					let responseData = try JSONSerialization.jsonObject(with: data, options: [.fragmentsAllowed])
+					os_log(.debug, "apnsManager.shared.updateRemoteNotificationServer(): responseData: \(responseData as! NSObject)")
+				} catch {
+					os_log(.error, "apnsManager.shared.updateRemoteNotificationServer(): URLSession.dataTask: failed to create request session: \(error as NSObject)")
 				}
 			}
 			if let error = error {
-				os_log(.error, "URLSession.dataTask caught error: \(error as NSObject)")
+				os_log(.error, "apnsManager.shared.updateRemoteNotificationServer(): URLSession.dataTask caught error: \(error as NSObject)")
 			}
 		}.resume()
 	}
 	
-	// Property to be updated via APNS
-	@Published var data: CGFloat = 56.0
+	// Fetch admin status for user from remote notification server
+	func checkForAdminFlag() {
+		// Construct request URL + payload
+		let requestURL = self.apiRoute + self.userID
+		guard let url = URL(string: requestURL) else {
+			os_log(.error, "apnsManager.shared.checkForAdminFlag(): Failed to create request URL")
+			return
+		}
+		
+		// Construct HTTP request
+		var request = URLRequest(url: url)
+		request.httpMethod = "GET"
+		request.setValue("application/json", forHTTPHeaderField: "content-type")
+		request.timeoutInterval = 10
+		
+		// Send HTTP request
+		let session = URLSession.shared
+		session.dataTask(with: request) { (data, response, error) in
+			os_log(.debug, "apnsManager.shared.checkForAdminFlag(): HTTP \(request.httpMethod! as NSObject) \(requestURL)")
+			// Check whether we like the HTTP response status code and report success or failure
+			if let response = response as? HTTPURLResponse {
+				let responseCodes = [
+					200: "Success",
+					404: "NotFound"
+				]
+				os_log(.debug, "apnsManager.shared.checkForAdminFlag(): responseCode: \(response.statusCode) \(responseCodes[response.statusCode] as NSObject? ?? "Unknown" as NSObject)")
+			}
+			if let data = data {
+				do {
+					let responseData = try JSONSerialization.jsonObject(with: data, options: [.fragmentsAllowed]) as! [String : Any]
+					os_log(.debug, "apnsManager.shared.checkForAdminFlag(): responseData: \(responseData)")
+					var adminFlag: Bool
+					if responseData["admin"] as! String == "True" {
+						adminFlag = true
+					} else {
+						adminFlag = false
+					}
+					DispatchQueue.main.async {
+						self.userIsAdmin = adminFlag
+					}
+				} catch {
+					os_log(.error, "apnsManager.shared.checkForAdminFlag(): URLSession.dataTask: failed to create request session: \(error as NSObject)")
+				}
+			}
+			if let error = error {
+				os_log(.error, "apnsManager.shared.checkForAdminFlag(): URLSession.dataTask caught error: \(error as NSObject)")
+			}
+		}.resume()
+	}
+	
+	// Fetch admin status for user from remote notification server
+	func getRemoteUserName(completionHandler: @escaping () -> Void) {
+		// Construct request URL + payload
+		let requestURL = self.apiRoute + self.userID
+		guard let url = URL(string: requestURL) else {
+			os_log(.error, "apnsManager.shared.getRemoteUserName():Failed to create request URL")
+			return
+		}
+		
+		// Construct HTTP request
+		var request = URLRequest(url: url)
+		request.httpMethod = "GET"
+		request.setValue("application/json", forHTTPHeaderField: "content-type")
+		request.timeoutInterval = 10
+		
+		// Send HTTP request
+		let session = URLSession.shared
+		session.dataTask(with: request) { (data, response, error) in
+			os_log(.debug, "apnsManager.shared.getRemoteUserName(): HTTP \(request.httpMethod! as NSObject) \(requestURL)")
+			// Check whether we like the HTTP response status code and report success or failure
+			if let response = response as? HTTPURLResponse {
+				let responseCodes = [
+					200: "Success",
+					404: "NotFound"
+				]
+				os_log(.debug, "apnsManager.shared.getRemoteUserName(): responseCode: \(response.statusCode) \(responseCodes[response.statusCode] as NSObject? ?? "Unknown" as NSObject)")
+				if response.statusCode == 404 {
+					os_log(.error, "apnsManager.shared.getRemoteUserName(): User not found!")
+					return
+				}
+			}
+			if let data = data {
+				do {
+					let responseData = try JSONSerialization.jsonObject(with: data, options: [.fragmentsAllowed]) as! [String : Any]
+					os_log(.debug, "apnsManager.shared.getRemoteUserName(): responseData: \(responseData)")
+					guard let remoteName = responseData["name"] as? String else {
+						os_log(.error, "apnsManager.shared.getRemoteUserName(): failed to decode response")
+						return
+					}
+					// Revisit this so SwiftUI will stop yelling at me about updating data from background thread
+					if remoteName != self.userName {
+						self.serialQueue.async {
+							self.userName = remoteName
+							completionHandler()
+						}
+					}
+				} catch {
+					os_log(.error, "apnsManager.shared.getRemoteUserName(): URLSession.dataTask: failed to create request session: \(error as NSObject)")
+				}
+			}
+			if let error = error {
+				os_log(.error, "apnsManager.shared.getRemoteUserName(): URLSession.dataTask caught error: \(error as NSObject)")
+			}
+		}.resume()
+	}
+	
+	
+	
+	// MARK: Data Model methods and properties
+	
+	
+	
+	func handleAPNSContent(content: [AnyHashable : Any]) {
+		if let newData = content["Data"] as? CGFloat {
+			os_log(.info, "apnsManager.shared.handleAPNSContent: Received new data: \(content["Data"] as! NSObject)")
+			self.size = newData
+		} else {
+			os_log(.error, "apnsManager.shared.handleAPNSContent: No Data key in notification dictionary!")
+		}
+	}
+	
+	@Published var size: CGFloat = 56.0 {
+		didSet {
+			os_log(.debug, "apnsManager.shared.size set: \(self.size)")
+		}
+	}
+	
 }
