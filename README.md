@@ -108,7 +108,7 @@ MyApp[15355:2946298] apnsManager.shared.apnsRegistrationSuccess set: true
 MyApp[15355:2946298] apnsManager.shared.notificationPermissionStatus set: Allowed
 MyApp[15355:2946298] apnsManager.shared.userID set: 1234567890
 MyApp[15355:2946298] apnsManager.shared.userName set: Test User 1
-MyApp[15355:2946718] apnsManager.shared.updateRemoteNotificationServer(): HTTP PUT https://apns.example.com/v1/user/1234567890, requestData: ["bundle-id": "net.magnolialogic.MyApp", "device-token": "fcc37fb74f2506277739c1e343c535f131447327105e23ad2a0ce", "name": "Test User 1"]
+MyApp[15355:2946718] apnsManager.shared.updateRemoteNotificationServer(): HTTP PUT https://apns.example.com/v1/user/1234567890, requestData: ["bundle-id": "com.example.MyApp", "device-token": "fcc37fb74f2506277739c1e343c535f131447327105e23ad2a0ce", "name": "Test User 1"]
 MyApp[15355:2946718] apnsManager.shared.updateRemoteNotificationServer(): responseCode: 200 Success
 MyApp[15355:2946718] apnsManager.shared.updateRemoteNotificationServer(): responseData: User 1234567890 updated
 MyApp[15355:2946298] apnsManager.shared.remoteNotificationServerRegistrationSuccess set: true
