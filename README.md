@@ -13,7 +13,7 @@ Handles requesting user permissions for notifications, registering with APNS ser
 4. Add `@UIApplicationDelegateAdaptor` and `@StateObject` a la lines 4-5 from the boilerplate example below
 5. Profit
 
-Note: these steps result in a read-only library, so when you're ready to start customizing this boilerplate example do a `git clone` onto your local disk and then drag the local folder in to your Xcode sidebar. This will move the library from the "Swift Package Dependencies" section into your app's resources, and you can edit/update the implementation from there.
+**Note:** these steps result in a read-only library, so when you're ready to start customizing this boilerplate example do a `git clone` onto your local disk and then drag the local folder in to your Xcode sidebar. This will move the library from "Swift Package Dependencies" into your app's resources, and you can edit/update the implementation from there.
 
 #### MyApp.swift
 ```swift
