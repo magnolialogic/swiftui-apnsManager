@@ -4,6 +4,7 @@ import PackageDescription
 
 let package = Package(
     name: "swiftui-apnsManager",
+    platforms: [.iOS(.v14)],
     products: [
         .library(
             name: "swiftui-apnsManager",
