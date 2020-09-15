@@ -1,5 +1,5 @@
 # swiftui-apnsManager
-Add three lines of code to your SwiftUI app to handle requesting user permissions for notifications, and if allowed fetch a device token from APNS and upload it to [your remote notification server](https://github.com/magnolialogic/python-apns_server).
+Add a few lines of code to your SwiftUI app to handle requesting user permissions for notifications, and if allowed fetch a device token from APNS and upload it to [your remote notification server](https://github.com/magnolialogic/python-apns_server).
 
 *Requires Xcode 12 / iOS 14*
 
