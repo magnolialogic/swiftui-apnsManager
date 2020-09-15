@@ -27,7 +27,7 @@ class apnsManager: ObservableObject {
 	let dispatchGroup = DispatchGroup()
 	
 	// Root URL for python-apns_server API
-	let apiRoute = ProcessInfo.processInfo.environment["apiRoute"]
+	let apiRoute = ProcessInfo.processInfo.environment["apiRoute"]! // If this isn't set we should crash, #@$&! it
 	
 	
 	
