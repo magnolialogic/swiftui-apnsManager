@@ -43,61 +43,59 @@ struct MyApp: App {
 }
 
 struct GetStartedView: View {
-	@EnvironmentObject var apnsManagedSettings: apnsManager
+    @EnvironmentObject var apnsManagedSettings: apnsManager
 	
-	var body: some View {
-		VStack {
-			Spacer()
-			Button(action: {
-				apnsManagedSettings.requestNotificationsPermission()
-			}, label: {
-				Text("Get Started")
-			})
-			Text("Note: push notification permissions are required!")
-				.font(.system(size: 10))
-				.padding(.top, 10)
-			Spacer()
-		}.onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification), perform: { _ in
-			apnsManagedSettings.checkNotificationAuthorizationStatus()
-		})
-	}
+    var body: some View {
+        VStack {
+            Spacer()
+            Button(action: {
+                apnsManagedSettings.requestNotificationsPermission()
+            }, label: {
+                Text("Get Started")
+            })
+            Text("Note: push notification permissions are required!")
+                .font(.system(size: 10))
+                .padding(.top, 10)
+            Spacer()
+        }.onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification), perform: { _ in
+            apnsManagedSettings.checkNotificationAuthorizationStatus()
+        })
+    }
 }
 
 struct NotificationsDeniedView: View {
-	@EnvironmentObject var apnsManagedSettings: apnsManager
+    @EnvironmentObject var apnsManagedSettings: apnsManager
 	
-	var body: some View {
-		if apnsManagedSettings.notificationPermissionStatus == "Denied" {
-			VStack {
-				Spacer()
-				Text("Notifications permissions are required")
+    var body: some View {
+        if apnsManagedSettings.notificationPermissionStatus == "Denied" {
+            VStack {
+                Spacer()
+                Text("Notifications permissions are required")
 
-				Button(action: {
-					UIApplication.shared.open(URL(string: UIApplication.openSettingsURLString)!, options: [:], completionHandler: nil)
-				}, label: {
-					Text("Enable in Settings")
-						.padding(.top, 20)
-				})
-				Spacer()
-			}.onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification), perform: { _ in
-				apnsManagedSettings.checkNotificationAuthorizationStatus()
-			})
-		} else {
-			NotificationsAllowedView()
-		}
-	}
+                Button(action: {
+                    UIApplication.shared.open(URL(string: UIApplication.openSettingsURLString)!, options: [:], completionHandler: nil)
+                }, label: {
+                    Text("Enable in Settings")
+                        .padding(.top, 20)
+                })
+                Spacer()
+            }.onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification), perform: { _ in
+                apnsManagedSettings.checkNotificationAuthorizationStatus()
+            })
+        } else {
+            NotificationsAllowedView()
+        }
+    }
 }
 
 struct NotificationsAllowedView: View {
-	@EnvironmentObject var apnsManagedSettings: apnsManager
+    @EnvironmentObject var apnsManagedSettings: apnsManager
 	
-	var body: some View {
-		VStack {
-			Spacer()
-
-			Text("Listening for push notifications...")
-
-			Spacer()
+    var body: some View {
+        VStack {
+            Spacer()
+            Text("Listening for push notifications...")
+            Spacer()
 	}
     }
 }
