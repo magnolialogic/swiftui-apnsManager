@@ -1,9 +1,11 @@
 # swiftui-apnsManager
-Add a few lines of code to your SwiftUI app to implement Sign In With Apple, handle requesting user permissions for notifications, and&mdash;if allowed&mdash;fetch a device token from APNS and upload it to [your remote notification server](https://github.com/magnolialogic/python-apns_server). Gates access to your app's main view until user has granted permission for notifications and completed Sign In With Apple.
+SwiftUI package that implements Sign In With Apple, handles requesting user permissions for notifications, and&mdash;if allowed&mdash;fetches a device token from APNS and uploads it to [your remote notification server](https://github.com/magnolialogic/python-apns_server).
+
+Gates access to your app's main view until user has granted permission for notifications and completed Sign In With Apple.
 
 *Requires Xcode 12 / iOS 14*
 
-## Implementation
+## Usage
 
 1. Add Swift Package to your Xcode 12 / iOS 14 project
 2. `import APNSManager`
@@ -18,25 +20,25 @@ import SwiftUI
 
 @main
 struct MyApp: App {
-	@UIApplicationDelegateAdaptor private var appDelegate: AppDelegate
-	@StateObject var apnsManagedSettings = apnsManager.shared
+    @UIApplicationDelegateAdaptor private var appDelegate: AppDelegate
+    @StateObject var apnsManagedSettings = apnsManager.shared
 
-	var body: some Scene {
-        	WindowGroup {
-			if apnsManagedSettings.notificationPermissionStatus == "Unknown" {
-				VStack {
-					Spacer()
-					ProgressView()
-					Spacer()
-				}
-			} else if apnsManagedSettings.notificationPermissionStatus == "NotDetermined" {
-				GetStartedView().environmentObject(apnsManagedSettings)
-			} else if apnsManagedSettings.notificationPermissionStatus == "Denied" {
-				NotificationsDeniedView().environmentObject(apnsManagedSettings)
-			} else {
-				NotificationsAllowedView().environmentObject(apnsManagedSettings)
-			}
-		}
+    var body: some Scene {
+        WindowGroup {
+            if apnsManagedSettings.notificationPermissionStatus == "Unknown" {
+                VStack {
+                    Spacer()
+                    ProgressView()
+                    Spacer()
+                }
+            } else if apnsManagedSettings.notificationPermissionStatus == "NotDetermined" {
+                GetStartedView().environmentObject(apnsManagedSettings)
+            } else if apnsManagedSettings.notificationPermissionStatus == "Denied" {
+                NotificationsDeniedView().environmentObject(apnsManagedSettings)
+            } else {
+                NotificationsAllowedView().environmentObject(apnsManagedSettings)
+            }
+        }
     }
 }
 
