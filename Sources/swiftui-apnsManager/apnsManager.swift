@@ -44,14 +44,14 @@ public class apnsManager: ObservableObject {
 	}
 	
 	// Tracks whether user has admin flag set in DB
-	@Published var userIsAdmin = false {
+	@Published public var userIsAdmin = false {
 		didSet {
 			os_log(.debug, "apnsManager.shared.userIsAdmin set: \(self.userIsAdmin)")
 		}
 	}
 	
 	// If deviceToken is valid and remoteNotificationServerRegistrationSuccess, update userName on remote notification server if local userName changes
-	@Published var userName: String = UserDefaults.standard.string(forKey: "userName") ?? "no name provided" {
+	@Published public var userName: String = UserDefaults.standard.string(forKey: "userName") ?? "no name provided" {
 		didSet {
 			os_log(.debug, "apnsManager.shared.userName set: \(self.userName)")
 			UserDefaults.standard.setValue(userName, forKey: "userName")
@@ -111,7 +111,7 @@ public class apnsManager: ObservableObject {
 	
 	
 	// Request notification permissions
-	func requestNotificationsPermission() {
+	public func requestNotificationsPermission() {
 		UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { (allowed, error) in
 			if allowed {
 				os_log(.debug, "appDelegate: User granted permissions for notifications, registering with APNS")
@@ -130,7 +130,7 @@ public class apnsManager: ObservableObject {
 	}
 	
 	// Get current notification authorization status
-	func checkNotificationAuthorizationStatus() {
+	public func checkNotificationAuthorizationStatus() {
 		UNUserNotificationCenter.current().getNotificationSettings(completionHandler: { settings in
 			var status: String
 			switch settings.authorizationStatus {
@@ -150,7 +150,7 @@ public class apnsManager: ObservableObject {
 	}
 	
 	// Track whether user granted permission for notifications
-	@Published var notificationPermissionStatus = "Unknown" {
+	@Published public var notificationPermissionStatus = "Unknown" {
 		didSet {
 			os_log(.debug, "apnsManager.shared.notificationPermissionStatus set: \(self.notificationPermissionStatus)")
 			if self.notificationPermissionStatus == "Allowed" && !self.apnsRegistrationSuccess {
@@ -161,7 +161,7 @@ public class apnsManager: ObservableObject {
 	}
 	
 	// Tracks whether user should be gated or can proceed to app's main view
-	var proceedToMainView: Bool {
+	public var proceedToMainView: Bool {
 		self.remoteNotificationServerRegistrationSuccess && self.signInWithAppleSuccess
 	}
 	
@@ -240,7 +240,7 @@ public class apnsManager: ObservableObject {
 	}
 	
 	// Fetch admin status for user from remote notification server
-	func checkForAdminFlag() {
+	public func checkForAdminFlag() {
 		// Construct request URL + payload
 		let requestURL = self.apiRoute + self.userID
 		guard let url = URL(string: requestURL) else {
@@ -360,7 +360,7 @@ public class apnsManager: ObservableObject {
 		}
 	}
 	
-	@Published var size: CGFloat = 56.0 {
+	@Published public var size: CGFloat = 56.0 {
 		didSet {
 			os_log(.debug, "apnsManager.shared.size set: \(self.size)")
 		}
