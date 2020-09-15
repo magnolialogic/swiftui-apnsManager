@@ -8,7 +8,7 @@
 import os
 import SwiftUI
 
-class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate {
+public class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate {
 	
 	// willFinishLaunchingWithOptions callback for debugging lifecycle state issues
 	func application(_ application: UIApplication, willFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {

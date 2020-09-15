@@ -8,7 +8,7 @@
 import os
 import SwiftUI
 
-class apnsManager: ObservableObject {
+public class apnsManager: ObservableObject {
 	
 	
 	
