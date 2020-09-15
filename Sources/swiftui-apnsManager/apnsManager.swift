@@ -36,7 +36,7 @@ public class apnsManager: ObservableObject {
 	
 	
 	// Push Sign In With Apple user credentials to remote notification server
-	var userID = UserDefaults.standard.string(forKey: "userID") ?? "" {
+	public var userID = UserDefaults.standard.string(forKey: "userID") ?? "" {
 		didSet {
 			os_log(.debug, "apnsManager.shared.userID set: \(self.userID)")
 			UserDefaults.standard.setValue(userID, forKey: "userID")
@@ -97,7 +97,7 @@ public class apnsManager: ObservableObject {
 	}
 	
 	// Tracks whether we've completed the Sign In With Apple process
-	@Published var signInWithAppleSuccess = UserDefaults.standard.bool(forKey: "signInWithAppleSuccess") {
+	@Published public var signInWithAppleSuccess = UserDefaults.standard.bool(forKey: "signInWithAppleSuccess") {
 		didSet {
 			os_log(.debug, "apnsManager.shared.signInWithAppleSuccess set: \(self.signInWithAppleSuccess)")
 			UserDefaults.standard.setValue(signInWithAppleSuccess, forKey: "signInWithAppleSuccess")
@@ -172,7 +172,7 @@ public class apnsManager: ObservableObject {
 	
 	
 	// Construct HTTP request to send APNS token to remote notification server
-	func updateRemoteNotificationServer() {
+	public func updateRemoteNotificationServer() {
 		// If userName is empty we've signed in with Apple previously, so username should be on remote notification server
 		if self.userName == "no name provided" {
 			os_log(.debug, "apnsManager.shared.updateRemoteNotificationServer(): userName not set, fetching from remote notification server")
