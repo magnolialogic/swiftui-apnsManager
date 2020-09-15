@@ -7,14 +7,14 @@ let package = Package(
     platforms: [.iOS(.v14)],
     products: [
         .library(
-            name: "swiftui-apnsManager",
-            targets: ["swiftui-apnsManager"]),
+            name: "APNSManager",
+            targets: ["APNSManager"]),
     ],
     dependencies: [
     ],
     targets: [
         .target(
-            name: "swiftui-apnsManager",
+            name: "APNSManager",
             dependencies: []),
     ]
 )
