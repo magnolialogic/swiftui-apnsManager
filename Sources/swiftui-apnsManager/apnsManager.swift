@@ -20,7 +20,7 @@ public class apnsManager: ObservableObject {
 	private init() {}
 	
 	// Create shared singleton
-	static let shared: apnsManager = apnsManager()
+	public static let shared: apnsManager = apnsManager()
 	
 	// Create shared background DispatchQueue and shared DispatchGroup
 	let serialQueue = DispatchQueue(label: "apnsManager.shared.staticQueue", qos: .userInteractive, target: .global())
