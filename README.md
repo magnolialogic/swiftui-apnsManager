@@ -1,7 +1,7 @@
 # swiftui-apnsManager
-SwiftUI package that implements Sign In With Apple, handles requesting user permissions for notifications, and&mdash;if allowed&mdash;fetches a device token from APNS and uploads it to [your remote notification server](https://github.com/magnolialogic/python-apns_server).
+SwiftUI package that allows you to gate access to your app's main view until user has completed Sign In With Apple and granted permission for push notifications.
 
-Gates access to your app's main view until user has granted permission for notifications and completed Sign In With Apple.
+Handles requesting user permissions for notifications, registering with APNS server and receiving device token, implements Sign In With Apple, and and uploads user ID + device token to [your remote notification server](https://github.com/magnolialogic/python-apns_server).
 
 *Requires Xcode 12 / iOS 14*
 
@@ -9,7 +9,7 @@ Gates access to your app's main view until user has granted permission for notif
 
 1. Add Swift Package to your Xcode 12 / iOS 14 project
 2. `import APNSManager`
-3. Add an "apiRoute" environment variable with your remote notification server's domain and REST route
+3. Add an "apiRoute" environment variable with your remote notification server's domain and REST route (e.g. `https://apns.example.com/v1/user/`)
 4. Add `@UIApplicationDelegateAdaptor` and `@StateObject` a la lines 4-5 from the boilerplate example below
 5. Profit
 
