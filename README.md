@@ -15,16 +15,18 @@ Handles requesting user permissions for notifications, registering with APNS ser
 
 **Note:** these steps result in a read-only library, so when you're ready to start customizing this boilerplate example do a `git clone` onto your local disk and then drag the local folder in to your Xcode sidebar. This will move the library from "Swift Package Dependencies" into your app's resources, and you can edit/update the implementation from there.
 
-#### MyApp.swift
+#### MyExampleApp.swift
 ```swift
 import APNSManager
+import AuthenticationServices
+import os
 import SwiftUI
 
 @main
-struct MyApp: App {
-    @UIApplicationDelegateAdaptor private var appDelegate: AppDelegate
+struct MyExampleApp: App {
+    @UIApplicationDelegateAdaptor var appDelegate: AppDelegate
     @StateObject var apnsManagedSettings = apnsManager.shared
-
+	
     var body: some Scene {
         WindowGroup {
             if apnsManagedSettings.notificationPermissionStatus == "Unknown" {
@@ -73,7 +75,6 @@ struct NotificationsDeniedView: View {
             VStack {
                 Spacer()
                 Text("Notifications permissions are required")
-
                 Button(action: {
                     UIApplication.shared.open(URL(string: UIApplication.openSettingsURLString)!, options: [:], completionHandler: nil)
                 }, label: {
@@ -94,11 +95,46 @@ struct NotificationsAllowedView: View {
     @EnvironmentObject var apnsManagedSettings: apnsManager
 	
     var body: some View {
-        VStack {
+        if apnsManagedSettings.proceedToMainView {
+            MyExampleMainView()
+        } else {
             Spacer()
-            Text("Listening for push notifications...")
+            SignInWithAppleButton(
+                .signIn,
+                onRequest: { request in
+                    request.requestedScopes = [.fullName]
+                },
+                onCompletion: { result in
+                    switch result {
+                    case .success (let authResults):
+                        let authCredential = authResults.credential as! ASAuthorizationAppleIDCredential
+                        let authCredentialUserID = authCredential.user
+                        apnsManagedSettings.userID = authCredentialUserID
+                        let userName = authCredential.fullName?.givenName ?? ""
+                        if !userName.isEmpty {
+                            apnsManagedSettings.userName = userName
+                        }
+                        apnsManagedSettings.updateRemoteNotificationServer()
+                        DispatchQueue.main.async {
+                            apnsManagedSettings.signInWithAppleSuccess = true
+                        }
+                    case.failure (let error):
+                        os_log(.error, "Authorization failed: \(error.localizedDescription)")
+                        DispatchQueue.main.async {
+                            apnsManagedSettings.signInWithAppleSuccess = false
+                        }
+                    }
+                }
+            )
+            .frame(width: 280, height: 60, alignment: .center)
             Spacer()
-	}
+        }
+    }
+}
+
+extension UserDefaults {
+    func valueExists(forKey key: String) -> Bool {
+        return object(forKey: key) != nil
     }
 }
 ```
