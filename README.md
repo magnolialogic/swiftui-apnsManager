@@ -9,7 +9,7 @@ Handles requesting user permissions for notifications, registering with APNS ser
 
 1. Add to your Xcode 12 / iOS 14 project as a Swift Package Dependency
 2. `import APNSManager`
-3. Add an "apiRoute" environment variable with your remote notification server's domain and REST route (e.g. `https://apns.example.com/v1/user/`)
+3. Add a Configuration Settings File to your project and define the route to its /user REST API (e.g. `https://apns.example.com/v1/user/`)
 4. Start with MyExampleApp.swift below
 
 **Note:** these steps result in a read-only library, so when you're ready to start customizing this boilerplate example do a `git clone` onto your local disk and then drag the local folder in to your Xcode sidebar. This will move the library from "Swift Package Dependencies" into your app's resources, and you can edit/update the implementation from there.
