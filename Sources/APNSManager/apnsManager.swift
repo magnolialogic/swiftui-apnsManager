@@ -30,6 +30,9 @@ public class apnsManager: ObservableObject {
 	// Root URL for python-apns_server API
 	let apiRoute = Bundle.main.object(forInfoDictionaryKey: "APNS_API_USER") as! String // If this isn't set we should crash, #@$&! it
 	
+	// Check for admin flag?
+	let adminCheck = Bundle.main.object(forInfoDictionaryKey: "ADMIN_CHECK") ?? false
+
 	
 	
 	// MARK: User info properties
@@ -93,7 +96,9 @@ public class apnsManager: ObservableObject {
 		didSet {
 			os_log(.debug, "apnsManager.shared.remoteNotificationServerRegistrationSuccess set: \(self.remoteNotificationServerRegistrationSuccess)")
 			UserDefaults.standard.setValue(remoteNotificationServerRegistrationSuccess, forKey: "remoteNotificationServerRegistrationSuccess")
-			checkForAdminFlag()
+			if adminCheck {
+				checkForAdminFlag()
+			}
 		}
 	}
 	
