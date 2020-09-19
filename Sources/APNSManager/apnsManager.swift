@@ -28,7 +28,7 @@ public class apnsManager: ObservableObject {
 	let dispatchGroup = DispatchGroup()
 	
 	// Root URL for python-apns_server API
-	let apiRoute = "https://" + Configuration.value(for: "API_ENDPOINT")! // If this isn't set we should crash, #@$&! it
+	let apiRoute = "https://" + Bundle.main.object(forInfoDictionaryKey: "API_ENDPOINT")! // If this isn't set we should crash, #@$&! it
 	
 	
 	
