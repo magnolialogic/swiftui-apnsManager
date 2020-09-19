@@ -31,7 +31,7 @@ public class apnsManager: ObservableObject {
 	let apiRoute = Bundle.main.object(forInfoDictionaryKey: "APNS_API_USER") as! String // If this isn't set we should crash, #@$&! it
 	
 	// Check for admin flag?
-	let adminCheck = Bundle.main.object(forInfoDictionaryKey: "ADMIN_CHECK") ?? false
+	let adminCheck = Bundle.main.object(forInfoDictionaryKey: "ADMIN_CHECK") as? Bool ?? false
 
 	
 	
