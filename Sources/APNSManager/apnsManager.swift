@@ -5,6 +5,7 @@
 //  Created by Chris Coffin on 7/24/20.
 //
 
+import Foundation
 import os
 import SwiftUI
 
@@ -27,7 +28,7 @@ public class apnsManager: ObservableObject {
 	let dispatchGroup = DispatchGroup()
 	
 	// Root URL for python-apns_server API
-	let apiRoute = ProcessInfo.processInfo.environment["apiRoute"]! // If this isn't set we should crash, #@$&! it
+	let apiRoute = "https://" + Configuration.value(for: "API_ENDPOINT")! // If this isn't set we should crash, #@$&! it
 	
 	
 	
